@@ -1,30 +1,29 @@
 const express = require("express");
 const router = express.Router();
-const generateRtcToken = require("../utils/generateRtcToken");
-const generateRtmToken = require("../utils/generateRtmToken");
+const admin = require("../utils/firebase");
 
-// Create RTC token (voice/video)
-router.get("/rtc", (req, res) => {
-    const { uid, channelName } = req.query;
+// Trigger incoming call push
+router.post("/incoming-call", async (req, res) => {
+  const { toDeviceToken, callType } = req.body;
 
-    if (!uid || !channelName) {
-        return res.status(400).json({ error: "Missing uid or channelName" });
-    }
+  const message = {
+    token: toDeviceToken,
+    notification: {
+      title: "Incoming Call",
+      body: You have an incoming ${callType} call,   // <-- FIXED
+    },
+    data: {
+      type: callType,
+    },
+  };
 
-    const token = generateRtcToken(uid, channelName);
-    res.json({ token });
-});
-
-// Create RTM token (messaging/signaling)
-router.get("/rtm", (req, res) => {
-    const { uid } = req.query;
-
-    if (!uid) {
-        return res.status(400).json({ error: "Missing uid" });
-    }
-
-    const token = generateRtmToken(uid);
-    res.json({ token });
+  try {
+    await admin.messaging().send(message);
+    res.json({ status: "sent" });
+  } catch (error) {
+    console.error("Error sending push:", error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
 module.exports = router;
