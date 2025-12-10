@@ -10,7 +10,7 @@ router.post("/incoming-call", async (req, res) => {
     token: toDeviceToken,
     notification: {
       title: "Incoming Call",
-      body: You have an incoming ${callType} call,
+      body: 'You have an incoming ${callType} call',   // <-- FIXED
     },
     data: {
       type: callType,
