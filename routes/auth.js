@@ -2,7 +2,10 @@ const express = require("express");
 const router = express.Router();
 const db = require("../utils/database");
 
-// SIGN UP
+/**
+ * SIGN UP
+ * Saves username + permanent Agora UID
+ */
 router.post("/signup", (req, res) => {
   const { username, agora_uid } = req.body;
 
@@ -29,9 +32,16 @@ router.post("/signup", (req, res) => {
   );
 });
 
-// LOGIN
+/**
+ * LOGIN
+ * Fetches Agora UID for calls
+ */
 router.post("/login", (req, res) => {
   const { username } = req.body;
+
+  if (!username) {
+    return res.status(400).json({ error: "Username required" });
+  }
 
   db.get(
     "SELECT id, agora_uid FROM users WHERE username = ?",
@@ -53,6 +63,30 @@ router.post("/login", (req, res) => {
   );
 });
 
+/**
+ * UPDATE FCM TOKEN
+ * Required for push notifications & calls
+ */
+router.post("/update-fcm", (req, res) => {
+  const { username, fcm_token } = req.body;
+
+  if (!username || !fcm_token) {
+    return res.status(400).json({ error: "Missing fields" });
+  }
+
+  db.run(
+    "UPDATE users SET fcm_token = ? WHERE username = ?",
+    [fcm_token, username],
+    function (err) {
+      if (err) {
+        return res.status(500).json({ error: err.message });
+      }
+
+      res.json({ status: "FCM token saved" });
+    }
+  );
+});
 
 module.exports = router;
+
 
