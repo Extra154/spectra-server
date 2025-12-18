@@ -1,47 +1,59 @@
 const express = require("express");
-const axios = require("axios");
 const router = express.Router();
+const { sendIncomingCall } = require("../services/fcmService");
 
-// Caller starts a call
+/**
+ * Caller starts a call
+ */
 router.post("/start", async (req, res) => {
-  const { callerId, receiverId, callType, channelName } = req.body;
+  const { callerUsername, calleeUsername, callType, channel } = req.body;
 
-  if (!callerId || !receiverId || !callType || !channelName) {
+  if (!callerUsername || !calleeUsername || !callType || !channel) {
     return res.status(400).json({ error: "Missing call details" });
   }
 
-  // Trigger incoming call notification
-  await axios.post("https://YOUR_SERVER_URL/push/incoming", {
-    to: receiverId,
-    data: {
-      type: "incoming_call",
-      callerId,
-      callType,
-      channelName
-    }
-  });
+  try {
+    // Send FCM notification to callee
+    await sendIncomingCall(calleeUsername, callerUsername, channel);
 
-  res.json({ status: "call_sent" });
+    res.json({
+      status: "call_sent",
+      callee: calleeUsername,
+      channel
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to send call notification" });
+  }
 });
 
-// Receiver accepts the call
+/**
+ * Receiver accepts the call
+ */
 router.post("/accept", (req, res) => {
-  const { callerId, channelName } = req.body;
+  const { channel } = req.body;
 
-  res.json({ status: "call_accepted", channelName });
+  if (!channel) {
+    return res.status(400).json({ error: "Missing channel" });
+  }
+
+  res.json({
+    status: "call_accepted",
+    channel
+  });
 });
 
-// Receiver declines the call
+/**
+ * Receiver declines the call
+ */
 router.post("/decline", (req, res) => {
-  const { callerId } = req.body;
-
   res.json({ status: "call_declined" });
 });
 
-// Call missed (no answer)
+/**
+ * Call timeout / missed
+ */
 router.post("/timeout", (req, res) => {
-  const { callerId, receiverId } = req.body;
-
   res.json({ status: "missed_call" });
 });
 
