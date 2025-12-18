@@ -14,15 +14,17 @@ router.post("/start", async (req, res) => {
 
   try {
     // Send FCM notification to callee
-    await sendIncomingCall(calleeUsername, callerUsername, channel);
+    await sendIncomingCall(calleeUsername, callerUsername, channel, callType);
 
     res.json({
       status: "call_sent",
+      caller: callerUsername,
       callee: calleeUsername,
+      callType,
       channel
     });
   } catch (err) {
-    console.error(err);
+    console.error("Error sending call notification:", err);
     res.status(500).json({ error: "Failed to send call notification" });
   }
 });
@@ -31,14 +33,19 @@ router.post("/start", async (req, res) => {
  * Receiver accepts the call
  */
 router.post("/accept", (req, res) => {
-  const { channel } = req.body;
+  const { callerUsername, calleeUsername, channel, callType } = req.body;
 
-  if (!channel) {
-    return res.status(400).json({ error: "Missing channel" });
+  if (!callerUsername || !calleeUsername || !channel || !callType) {
+    return res.status(400).json({ error: "Missing details for acceptance" });
   }
+
+  console.log(Call accepted: ${callType} call from ${callerUsername} → ${calleeUsername});
 
   res.json({
     status: "call_accepted",
+    caller: callerUsername,
+    callee: calleeUsername,
+    callType,
     channel
   });
 });
@@ -47,6 +54,13 @@ router.post("/accept", (req, res) => {
  * Receiver declines the call
  */
 router.post("/decline", (req, res) => {
+  const { callerUsername, calleeUsername, callType } = req.body;
+
+  if (!callerUsername || !calleeUsername || !callType) {
+    return res.status(400).json({ error: "Missing details for decline" });
+  }
+
+  console.log(Call declined: ${callType} call from ${callerUsername} → ${calleeUsername});
   res.json({ status: "call_declined" });
 });
 
@@ -56,12 +70,15 @@ router.post("/decline", (req, res) => {
 router.post("/missed", (req, res) => {
   const { callerUsername, calleeUsername, callType } = req.body;
 
-  console.log(
-    📞 Missed ${callType} call: ${callerUsername} → ${calleeUsername}
-  );
+  if (!callerUsername || !calleeUsername || !callType) {
+    return res.status(400).json({ error: "Missing details for missed call" });
+  }
 
-  res.json({ success: true });
+  console.log(📞 Missed ${callType} call: ${callerUsername} → ${calleeUsername});
+
+  res.json({ status: "call_missed", caller: callerUsername, callee: calleeUsername, callType });
 });
 
 module.exports = router;
+
 
