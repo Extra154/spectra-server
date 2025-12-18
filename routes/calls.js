@@ -53,8 +53,15 @@ router.post("/decline", (req, res) => {
 /**
  * Call timeout / missed
  */
-router.post("/timeout", (req, res) => {
-  res.json({ status: "missed_call" });
+router.post("/missed", (req, res) => {
+  const { callerUsername, calleeUsername, callType } = req.body;
+
+  console.log(
+    📞 Missed ${callType} call: ${callerUsername} → ${calleeUsername}
+  );
+
+  res.json({ success: true });
 });
 
 module.exports = router;
+
